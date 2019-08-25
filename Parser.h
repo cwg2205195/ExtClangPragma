@@ -179,6 +179,8 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> LoopHintHandler;
   std::unique_ptr<PragmaHandler> UnrollHintHandler;
   std::unique_ptr<PragmaHandler> NoUnrollHintHandler;
+  std::unique_ptr<PragmaHandler> BeginObfHandler;
+  std::unique_ptr<PragmaHandler> EndObfHandler;
 
   std::unique_ptr<CommentHandler> CommentSemaHandler;
 
@@ -1693,6 +1695,7 @@ private:
   StmtResult
   ParseStatementOrDeclaration(StmtVector &Stmts, AllowedContsructsKind Allowed,
                               SourceLocation *TrailingElseLoc = nullptr);
+  StmtResult HandlePragmaMyAnnotate(bool IsBegin);                          
   StmtResult ParseStatementOrDeclarationAfterAttributes(
                                          StmtVector &Stmts,
                                          AllowedContsructsKind Allowed,

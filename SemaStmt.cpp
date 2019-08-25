@@ -79,6 +79,64 @@ StmtResult Sema::ActOnDeclStmt(DeclGroupPtrTy dg, SourceLocation StartLoc,
   return new (Context) DeclStmt(DG, StartLoc, EndLoc);
 }
 
+StmtResult Sema::ActOnBeginObfStmt(ArrayRef<Decl *> Group,
+                                   SourceLocation StartLoc,
+                                   SourceLocation EndLoc//,
+                                   /*const AttributeList &Attr*/
+                                   /*,
+                                   SmallVector<char * ,8> Annotations*/){
+    //I think it's time to add a int declaration in the DeclGroup , 
+    //so that the DeclStmt can generate a int variable int the AST .  
+    //and don't forget adding a annotation under the declaration of integer variable      
+
+    	DeclGroupRef dgr(Group[0]);
+      /*
+      //add attribute to variable 
+      Decl * Var = Group[0];
+      Var->addAttr(::new (S.Context)
+             AnnotateAttr(Attr.getRange(), S.Context, Str,
+                          Attr.getAttributeSpellingListIndex()));*/
+    /*if(VarDecl * VarBegin = dyn_cast<VarDecl>(Group[0]))
+    {
+      Group=DeclGroupPtrTy::make(DeclGroupRef::Create(Context, Group.data(), Group.size()));
+    }*/
+
+    /*DeclGroupRef DG = DG.get();
+    DeclSpecContext DSContext = getDeclSpecContextFromDeclaratorContext(Context);
+    //create a integer in the AST 
+    DS.SetTypeSpecType(DeclSpec::TST_int, Loc, PrevSpec,
+                                     DiagID, Policy);
+  // If we have an invalid decl, just return an error.
+  if (DG.isNull()) return StmtError();
+  */
+  //VarDecl * myVar = VarDecl::Create(Context,CurContext,StartLoc,StartLoc,)
+  //ActOnUninitializedDecl(Group[0]);
+  return new (Context) DeclStmt(dgr, StartLoc, EndLoc);                                 
+  }
+
+StmtResult Sema::ActOnEndObfStmt(ArrayRef<Decl *> Group,
+                                   SourceLocation StartLoc,
+                                   SourceLocation EndLoc/*,
+                                   SmallVector<char * ,8> Annotations*/){
+    DeclGroupRef dgr(Group[0]);
+    /*if(VarDecl * VarEnd = dyn_cast<VarDecl>(Group[0]))
+    {
+      Group=DeclGroupPtrTy::make(DeclGroupRef::Create(Context, Group.data(), Group.size()));
+    }*/
+   //DeclGroupRef DG = DG.get();
+
+  // If we have an invalid decl, just return an error.
+  /*if (DG.isNull()) return StmtError();
+  if (VarDecl *D = dyn_cast<VarDecl>(Group[0])) {
+		DeclGroupPtrTy::make(
+      DeclGroupRef::Create(Context, Group.data(), Group.size()));
+	}
+	*/
+	
+  return new (Context) DeclStmt(dgr, StartLoc, EndLoc);
+  }  
+                                   
+
 void Sema::ActOnForEachDeclStmt(DeclGroupPtrTy dg) {
   DeclGroupRef DG = dg.get();
 

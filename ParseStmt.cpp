@@ -21,6 +21,7 @@
 #include "clang/Sema/PrettyDeclStackTrace.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/TypoCorrection.h"
+#include <sstream>  
 using namespace clang;
 
 //===----------------------------------------------------------------------===//
@@ -148,6 +149,90 @@ private:
 };
 }
 
+StmtResult 
+Parser::HandlePragmaMyAnnotate(bool IsBegin)
+{
+    if(IsBegin)
+      assert(Tok.is(tok::annot_pragma_begin_obf));
+    else 
+      assert(Tok.is(tok::annot_pragma_end_obf));
+    auto Where = Tok.getLocation();
+    //option 2. create a identifier token , enter this token , and let clang parse it .
+    SmallVector<Token, 32> TokenList;
+
+    Token tokINT;
+    tokINT.startToken();
+    tokINT.setKind(tok::kw_int);
+
+    Token tokDeclarator;
+    tokDeclarator.startToken();
+    tokDeclarator.setKind(tok::identifier);
+    if(IsBegin)
+      tokDeclarator.setIdentifierInfo(PP.getIdentifierInfo("beginObf"));
+    else 
+      tokDeclarator.setIdentifierInfo(PP.getIdentifierInfo("endObf"));
+
+    Token semi;
+    semi.startToken();
+    semi.setKind(tok::semi);
+
+    TokenList.push_back(tokINT);
+    TokenList.push_back(tokDeclarator);
+    TokenList.push_back(semi);
+
+    //lazily fix the location of tokens 
+    for(Token & tok : TokenList)
+    {
+      tok.setLocation(Where);
+    }
+
+    //1. enter tokens after the pragma directive 
+    Token * tokenArray= new Token[TokenList.size()];
+    std::copy(TokenList.begin(),TokenList.end(),tokenArray);
+    PP.EnterTokenStream(tokenArray,TokenList.size(),false,true);
+   
+    //eat the useless tokens
+    if(IsBegin)
+      while (Tok.is(tok::annot_pragma_begin_obf)){
+        ConsumeToken();
+      }
+    else
+      while (Tok.is(tok::annot_pragma_end_obf)){
+          ConsumeToken();
+      }
+
+    //2. add GNU - attribute , with the name "annotate" , and parameter "\"end_obf"\" 
+    IdentifierInfo * idfAnnotate= PP.getIdentifierInfo ("annotate");
+    Token idfAnnName;
+    idfAnnName.startToken();
+    idfAnnName.setKind(tok::string_literal);
+    StringRef ann;
+    if(IsBegin)
+      ann=StringRef("\"begin_obf\"");
+    else 
+      ann=StringRef("\"end_obf\"");
+    idfAnnName.setLiteralData(ann.data());
+    idfAnnName.setLength(ann.size());
+
+    //create GNU - attribute 
+    ParsedAttributesWithRange TempAttrs(AttrFactory);
+    SourceRange sr(Where,Where);
+    ArgsVector ArgExprs;
+    SmallVector<Token, 4> StringToks;
+    StringToks.push_back(idfAnnName);
+
+    //create string parameter for the attribute 
+    ExprResult ArgExpr(Actions.ActOnStringLiteral(StringToks,getCurScope()) );
+    ArgExprs.push_back(ArgExpr.get());
+    TempAttrs.addNew(idfAnnotate, sr , (IdentifierInfo *)nullptr, Where ,
+                 ArgExprs.data(), ArgExprs.size(), AttributeList::AS_GNU);
+
+    //3. let clang deal with newly created declaration with annotation .
+    SourceLocation DeclStart = Tok.getLocation(), DeclEnd;
+    DeclGroupPtrTy Decl = ParseDeclaration(Declarator::BlockContext,DeclEnd, TempAttrs);
+    return Actions.ActOnDeclStmt(Decl, DeclStart, DeclEnd); 
+}
+
 StmtResult
 Parser::ParseStatementOrDeclarationAfterAttributes(StmtVector &Stmts,
           AllowedContsructsKind Allowed, SourceLocation *TrailingElseLoc,
@@ -162,6 +247,16 @@ Retry:
   tok::TokenKind Kind  = Tok.getKind();
   SourceLocation AtLoc;
   switch (Kind) {
+  case tok::annot_pragma_begin_obf:
+  {
+      ProhibitAttributes(Attrs);
+      return HandlePragmaMyAnnotate(true);
+
+  case tok::annot_pragma_end_obf:
+  {
+      ProhibitAttributes(Attrs);
+      return HandlePragmaMyAnnotate(false);
+  }
   case tok::at: // May be a @try or @throw statement
     {
       ProhibitAttributes(Attrs); // TODO: is it correct?
@@ -389,7 +484,7 @@ Retry:
   }
 
   return Res;
-}
+}}
 
 /// \brief Parse an expression statement.
 StmtResult Parser::ParseExprStatement() {

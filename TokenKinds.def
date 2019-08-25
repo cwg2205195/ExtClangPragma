@@ -792,6 +792,10 @@ ANNOTATION(module_include)
 ANNOTATION(module_begin)
 ANNOTATION(module_end)
 
+
+ANNOTATION(pragma_begin_obf)
+ANNOTATION(pragma_end_obf)
+
 #undef ANNOTATION
 #undef TESTING_KEYWORD
 #undef OBJC2_AT_KEYWORD

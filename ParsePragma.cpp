@@ -12,6 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "RAIIObjectsForParser.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Debug.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/PragmaKinds.h"
 #include "clang/Basic/TargetInfo.h"
@@ -21,6 +23,7 @@
 #include "clang/Sema/LoopHint.h"
 #include "clang/Sema/Scope.h"
 #include "llvm/ADT/StringSwitch.h"
+#include <sstream>  
 using namespace clang;
 
 namespace {
@@ -172,13 +175,59 @@ struct PragmaForceCUDAHostDeviceHandler : public PragmaHandler {
       : PragmaHandler("force_cuda_host_device"), Actions(Actions) {}
   void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
                     Token &FirstToken) override;
-
 private:
   Sema &Actions;
 };
 
+struct PragmaBeginObfHandler : public PragmaHandler{
+    PragmaBeginObfHandler() : PragmaHandler("begin_obf"){}
+    void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
+                    Token &FirstToken) override; 
+};
+
+struct PragmaEndObfHandler : public PragmaHandler{
+    PragmaEndObfHandler() : PragmaHandler("end_obf"){}
+    void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer,
+                    Token &FirstToken) override; 
+};
+
 }  // end namespace
 
+void MyPragmaHandler(Preprocessor &PP,Token &FirstToken,bool IsBegin)
+{
+   //eat token
+    Token tok ;
+    while(tok.isNot(tok::eod)){
+        PP.Lex(tok); 
+    } 
+
+    //enter our annotation token 
+    tok.startToken();
+    if(IsBegin)
+    {
+      tok.setAnnotationValue(strdup("begin_obf"));
+      tok.setKind(tok::annot_pragma_begin_obf);
+    }
+    else
+    {
+      tok.setAnnotationValue(strdup("end_obf"));
+      tok.setKind(tok::annot_pragma_end_obf);
+    }
+    tok.setLocation(FirstToken.getLocation());
+    tok.setAnnotationEndLoc(FirstToken.getLocation());
+    PP.EnterToken(tok);
+}
+void PragmaBeginObfHandler::HandlePragma(Preprocessor &PP,
+                                             PragmaIntroducerKind Introducer,
+                                             Token &FirstToken){
+    MyPragmaHandler(PP,FirstToken,true);
+}
+
+void PragmaEndObfHandler::HandlePragma(Preprocessor &PP,
+                                             PragmaIntroducerKind Introducer,
+                                             Token &FirstToken){
+    MyPragmaHandler(PP,FirstToken,false);
+} 
 void Parser::initializePragmaHandlers() {
   AlignHandler.reset(new PragmaAlignHandler());
   PP.AddPragmaHandler(AlignHandler.get());
@@ -207,6 +256,13 @@ void Parser::initializePragmaHandlers() {
   FPContractHandler.reset(new PragmaFPContractHandler());
   PP.AddPragmaHandler("STDC", FPContractHandler.get());
 
+   BeginObfHandler.reset(new PragmaBeginObfHandler());
+   PP.AddPragmaHandler(BeginObfHandler.get());
+
+   EndObfHandler.reset(new PragmaEndObfHandler());
+   PP.AddPragmaHandler(EndObfHandler.get());
+   
+
   if (getLangOpts().OpenCL) {
     OpenCLExtensionHandler.reset(new PragmaOpenCLExtensionHandler());
     PP.AddPragmaHandler("OPENCL", OpenCLExtensionHandler.get());
@@ -223,7 +279,6 @@ void Parser::initializePragmaHandlers() {
     MSCommentHandler.reset(new PragmaCommentHandler(Actions));
     PP.AddPragmaHandler(MSCommentHandler.get());
   }
-
   if (getLangOpts().MicrosoftExt) {
     MSDetectMismatchHandler.reset(new PragmaDetectMismatchHandler(Actions));
     PP.AddPragmaHandler(MSDetectMismatchHandler.get());
@@ -247,6 +302,8 @@ void Parser::initializePragmaHandlers() {
     PP.AddPragmaHandler(MSRuntimeChecks.get());
     MSIntrinsic.reset(new PragmaMSIntrinsicHandler());
     PP.AddPragmaHandler(MSIntrinsic.get());
+    
+
   }
 
   if (getLangOpts().CUDA) {
@@ -1946,6 +2003,9 @@ void PragmaOptimizeHandler::HandlePragma(Preprocessor &PP,
 
   Actions.ActOnPragmaOptimize(IsOn, FirstToken.getLocation());
 }
+
+
+
 
 /// \brief Parses loop or unroll pragma hint value and fills in Info.
 static bool ParseLoopHintValue(Preprocessor &PP, Token &Tok, Token PragmaName,
