@@ -206,7 +206,7 @@ namespace sema {
   class FunctionScopeInfo;
   class LambdaScopeInfo;
   class PossiblyUnreachableDiag;
-  class TemplateDeductionInfo;
+  class TemplateDeductionInfo;                          
 }
 
 namespace threadSafety {
@@ -3479,7 +3479,12 @@ public:
     }
     void disable() { Active = false; }
   };
-
+  StmtResult ActOnBeginObfStmt(ArrayRef<Decl *> Group,
+                                   SourceLocation StartLoc,
+                                   SourceLocation EndLoc);
+  StmtResult ActOnEndObfStmt(ArrayRef<Decl *> Group,
+                                   SourceLocation StartLoc,
+                                   SourceLocation EndLoc);     
   StmtResult ActOnDeclStmt(DeclGroupPtrTy Decl,
                                    SourceLocation StartLoc,
                                    SourceLocation EndLoc);

@@ -181,7 +181,6 @@ class Parser : public CodeCompletionHandler {
   std::unique_ptr<PragmaHandler> NoUnrollHintHandler;
   std::unique_ptr<PragmaHandler> BeginObfHandler;
   std::unique_ptr<PragmaHandler> EndObfHandler;
-
   std::unique_ptr<CommentHandler> CommentSemaHandler;
 
   /// Whether the '>' token acts as an operator or not. This will be
@@ -1695,12 +1694,12 @@ private:
   StmtResult
   ParseStatementOrDeclaration(StmtVector &Stmts, AllowedContsructsKind Allowed,
                               SourceLocation *TrailingElseLoc = nullptr);
-  StmtResult HandlePragmaMyAnnotate(bool IsBegin);                          
   StmtResult ParseStatementOrDeclarationAfterAttributes(
                                          StmtVector &Stmts,
                                          AllowedContsructsKind Allowed,
                                          SourceLocation *TrailingElseLoc,
                                          ParsedAttributesWithRange &Attrs);
+  StmtResult HandlePragmaMyAnnotate(bool IsBegin);                                        
   StmtResult ParseExprStatement();
   StmtResult ParseLabeledStatement(ParsedAttributesWithRange &attrs);
   StmtResult ParseCaseStatement(bool MissingCase = false,
