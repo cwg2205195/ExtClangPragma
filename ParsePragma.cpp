@@ -205,13 +205,13 @@ void MyPragmaHandler(Preprocessor &PP,Token &FirstToken,bool IsBegin)
     tok.startToken();
     if(IsBegin)
     {
-      tok.setAnnotationValue(strdup("begin_obf"));
       tok.setKind(tok::annot_pragma_begin_obf);
+      tok.setAnnotationValue(strdup("begin_obf"));
     }
     else
     {
-      tok.setAnnotationValue(strdup("end_obf"));
       tok.setKind(tok::annot_pragma_end_obf);
+      tok.setAnnotationValue(strdup("end_obf"));
     }
     tok.setLocation(FirstToken.getLocation());
     tok.setAnnotationEndLoc(FirstToken.getLocation());
